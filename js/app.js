@@ -314,28 +314,27 @@ function convertFromMatrix() {
 
   const steps = [
     {
-      title: "Start with matrix",
-      content: formatMatrix(matrix),
-      state: {
+        title: "Start with matrix",
+        content: formatMatrix(matrix),
+        state: {
         P: [],
         Q: [],
         highlightP: [],
         highlightQ: [],
-      },
+        },
     },
-    ...biword.steps,
     {
-      title: "Associated two-rowed array",
-      content: formatArray(biword.top, biword.bottom),
-      state: {
+        title: "Associated two-rowed array",
+        content: formatArray(biword.top, biword.bottom),
+        state: {
         P: [],
         Q: [],
         highlightP: [],
         highlightQ: [],
-      },
+        },
     },
     ...forward.steps,
-  ];
+    ];
 
   appState.latestOutputs = {
     P: forward.P,
