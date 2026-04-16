@@ -37,9 +37,9 @@ export const DOM_IDS = {
 
 export const UI_TEXT = {
   NO_STEPS: "No steps loaded.",
-  NOT_IMPLEMENTED_MATRIX_BALL:
-    "Matrix-ball construction is not implemented yet. Switch to row insertion for now.",
   EMPTY_OUTPUT: "(no output yet)",
+  MATRIX_BALL_TABLEAUX_STANDARD_ONLY:
+    "The inverse matrix-ball option for tableaux currently expects P and Q to be standard tableaux with the same shape.",
 };
 
 export const TABLEAU_UI = {

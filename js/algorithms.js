@@ -4,6 +4,10 @@ export function deepCopyTableau(T) {
   return T.map((row) => [...row]);
 }
 
+export function deepCopyMatrix(matrix) {
+  return matrix.map((row) => [...row]);
+}
+
 export function shapeOf(T) {
   return T.map((row) => row.length);
 }
@@ -238,7 +242,6 @@ export function biwordFromMatrix(matrix) {
   for (let i = 0; i < matrix.length; i += 1) {
     for (let j = 0; j < matrix[i].length; j += 1) {
       const count = matrix[i][j];
-
       if (count > 0) {
         steps.push({
           kind: STEP_KIND.MATRIX_ENTRY,
@@ -247,7 +250,6 @@ export function biwordFromMatrix(matrix) {
           state: null,
         });
       }
-
       for (let k = 0; k < count; k += 1) {
         top.push(i + 1);
         bottom.push(j + 1);
@@ -270,16 +272,18 @@ export function matrixFromBiword(top, bottom) {
   return matrix;
 }
 
-import { STEP_KIND } from "./constants.js";
-
 function makeZeroMatrix(numRows, numCols) {
   return Array.from({ length: numRows }, () => Array(numCols).fill(0));
 }
 
-function maxLabelInNorthwestRegion(labeledCells, row, col) {
+function matrixHasBalls(matrix) {
+  return matrix.some((row) => row.some((value) => value > 0));
+}
+
+function maxLabelInNorthwestRegion(labeledBalls, row, col) {
   let maxLabel = 0;
 
-  for (const ball of labeledCells) {
+  for (const ball of labeledBalls) {
     if (ball.row <= row && ball.col <= col) {
       if (ball.label > maxLabel) {
         maxLabel = ball.label;
@@ -290,39 +294,34 @@ function maxLabelInNorthwestRegion(labeledCells, row, col) {
   return maxLabel;
 }
 
-function compareBallsNorthwestToSoutheast(a, b) {
-  if (a.row !== b.row) return a.row - b.row;
-  return a.col - b.col;
-}
-
 export function labelBallMatrix(matrix) {
-  const labeledCells = [];
+  const labeledBalls = [];
 
   for (let row = 0; row < matrix.length; row += 1) {
     for (let col = 0; col < matrix[row].length; col += 1) {
       const count = matrix[row][col];
       if (count <= 0) continue;
 
-      const startLabel = maxLabelInNorthwestRegion(labeledCells, row, col) + 1;
+      const firstLabel = maxLabelInNorthwestRegion(labeledBalls, row, col) + 1;
 
       for (let offset = 0; offset < count; offset += 1) {
-        labeledCells.push({
+        labeledBalls.push({
           row,
           col,
-          label: startLabel + offset,
+          label: firstLabel + offset,
           offsetInCell: offset,
         });
       }
     }
   }
 
-  return labeledCells;
+  return labeledBalls;
 }
 
-export function groupedBallsByLabel(labeledCells) {
+function groupBallsByLabel(labeledBalls) {
   const groups = new Map();
 
-  for (const ball of labeledCells) {
+  for (const ball of labeledBalls) {
     if (!groups.has(ball.label)) {
       groups.set(ball.label, []);
     }
@@ -330,75 +329,66 @@ export function groupedBallsByLabel(labeledCells) {
   }
 
   for (const balls of groups.values()) {
-    balls.sort(compareBallsNorthwestToSoutheast);
+    balls.sort((a, b) => {
+      if (a.col !== b.col) return a.col - b.col;
+      return b.row - a.row;
+    });
   }
 
   return groups;
 }
 
-export function extractPQRowFromLabels(labeledCells) {
-  const groups = groupedBallsByLabel(labeledCells);
+function extractRowsFromLabelGroups(groups) {
   const labels = [...groups.keys()].sort((a, b) => a - b);
-
   const pRow = [];
   const qRow = [];
 
   for (const label of labels) {
     const balls = groups.get(label);
-
     const leftMostCol = Math.min(...balls.map((ball) => ball.col));
     const topMostRow = Math.min(...balls.map((ball) => ball.row));
-
     pRow.push(leftMostCol + 1);
     qRow.push(topMostRow + 1);
   }
 
-  return { pRow, qRow, labels, groups };
+  return { pRow, qRow, labels };
 }
 
-export function nextMatrixFromRepeatedLabels(labeledCells, numRows, numCols) {
-  const groups = groupedBallsByLabel(labeledCells);
+function nextMatrixFromRepeatedLabels(labeledBalls, numRows, numCols) {
+  const groups = groupBallsByLabel(labeledBalls);
   const next = makeZeroMatrix(numRows, numCols);
 
   for (const balls of groups.values()) {
     if (balls.length <= 1) continue;
 
     for (let i = 0; i < balls.length - 1; i += 1) {
-      const sourceA = balls[i];
-      const sourceB = balls[i + 1];
-
-      const newRow = sourceB.row;
-      const newCol = sourceA.col;
-
-      next[newRow][newCol] += 1;
+      const leftBall = balls[i];
+      const rightBall = balls[i + 1];
+      next[rightBall.row][leftBall.col] += 1;
     }
   }
 
   return next;
 }
 
-export function matrixHasBalls(matrix) {
-  return matrix.some((row) => row.some((value) => value > 0));
-}
-
 export function matrixBallConstruction(matrix) {
   const numRows = matrix.length;
-  const numCols = matrix[0]?.length ?? 0;
+  const numCols = matrix[0].length;
 
-  let currentMatrix = matrix.map((row) => [...row]);
+  let currentMatrix = deepCopyMatrix(matrix);
   const P = [];
   const Q = [];
   const steps = [];
-
   let round = 1;
 
   while (matrixHasBalls(currentMatrix)) {
-    const labeled = labelBallMatrix(currentMatrix);
-    const { pRow, qRow } = extractPQRowFromLabels(labeled);
-    const nextMatrix = nextMatrixFromRepeatedLabels(labeled, numRows, numCols);
+    const labeledBalls = labelBallMatrix(currentMatrix);
+    const groups = groupBallsByLabel(labeledBalls);
+    const { pRow, qRow } = extractRowsFromLabelGroups(groups);
+    const nextMatrix = nextMatrixFromRepeatedLabels(labeledBalls, numRows, numCols);
 
-    P.push(pRow);
-    Q.push(qRow);
+    P.push([...pRow]);
+    Q.push([...qRow]);
 
     steps.push({
       kind: STEP_KIND.MATRIX_BALL_ROUND,
@@ -414,11 +404,11 @@ export function matrixBallConstruction(matrix) {
         formatMatrix(nextMatrix),
       ].join("\n"),
       state: {
-        matrix: currentMatrix.map((row) => [...row]),
-        labeledBalls: labeled.map((ball) => ({ ...ball })),
-        nextMatrix: nextMatrix.map((row) => [...row]),
-        P: P.map((row) => [...row]),
-        Q: Q.map((row) => [...row]),
+        matrix: deepCopyMatrix(currentMatrix),
+        labeledBalls: labeledBalls.map((ball) => ({ ...ball })),
+        nextMatrix: deepCopyMatrix(nextMatrix),
+        P: deepCopyTableau(P),
+        Q: deepCopyTableau(Q),
       },
     });
 
@@ -427,4 +417,51 @@ export function matrixBallConstruction(matrix) {
   }
 
   return { P, Q, steps };
+}
+
+export function isStandardPair(P, Q) {
+  const pEntries = P.flat();
+  const qEntries = Q.flat();
+  if (pEntries.length !== qEntries.length) return false;
+
+  const isStandard = (entries) => {
+    const sorted = [...entries].sort((a, b) => a - b);
+    for (let i = 0; i < sorted.length; i += 1) {
+      if (sorted[i] !== i + 1) return false;
+    }
+    return true;
+  };
+
+  return isStandard(pEntries) && isStandard(qEntries);
+}
+
+export function inverseMatrixBallFromStandardTableaux(P, Q) {
+  const inverse = inverseRsk(P, Q);
+  const matrix = matrixFromBiword(inverse.top, inverse.bottom);
+  const forward = matrixBallConstruction(matrix);
+  const reversedRounds = [...forward.steps].reverse().map((step, index) => ({
+    kind: STEP_KIND.MATRIX_BALL_ROUND,
+    title: `Inverse matrix-ball round ${index + 1}`,
+    content: [
+      `View the matrix-ball layers in reverse to rebuild the original matrix from the tableau rows.`,
+      `Displayed configuration:`,
+      formatMatrix(step.state.matrix),
+    ].join("\n"),
+    state: {
+      matrix: deepCopyMatrix(step.state.matrix),
+      labeledBalls: step.state.labeledBalls.map((ball) => ({ ...ball })),
+      nextMatrix: step.state.nextMatrix ? deepCopyMatrix(step.state.nextMatrix) : null,
+      P: deepCopyTableau(P),
+      Q: deepCopyTableau(Q),
+    },
+  }));
+
+  return {
+    matrix,
+    biword: {
+      top: inverse.top,
+      bottom: inverse.bottom,
+    },
+    steps: reversedRounds,
+  };
 }

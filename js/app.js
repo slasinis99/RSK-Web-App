@@ -10,6 +10,7 @@ import {
   parseTableau,
   parseMatrix,
   validateSemistandard,
+  validateStandard,
   sameShape,
 } from "./parser.js";
 import {
@@ -17,11 +18,13 @@ import {
   formatArray,
   formatMatrix,
   validateLexOrder,
+  sortBiwordLex,
   rskFromBiword,
   inverseRsk,
   biwordFromMatrix,
   matrixFromBiword,
   matrixBallConstruction,
+  inverseMatrixBallFromStandardTableaux,
 } from "./algorithms.js";
 import {
   showStatus,
@@ -69,11 +72,7 @@ function clearNavigatorOnly() {
   appState.currentSteps = [];
   appState.currentStepIndex = -1;
   clearSteps();
-  setNavigatorButtonState({
-    hasSteps: false,
-    atStart: true,
-    atEnd: true,
-  });
+  setNavigatorButtonState({ hasSteps: false, atStart: true, atEnd: true });
 }
 
 function loadSample() {
@@ -108,11 +107,7 @@ function syncNavigator() {
   if (!hasSteps) {
     renderStep(null, -1, 0);
     if (appState.latestOutputs) {
-      renderOutputs({
-        ...appState.latestOutputs,
-        highlightP: [],
-        highlightQ: [],
-      });
+      renderOutputs({ ...appState.latestOutputs, highlightP: [], highlightQ: [] });
     }
     return;
   }
@@ -151,69 +146,103 @@ function resetSteps() {
   syncNavigator();
 }
 
-function ensureRowInsertionSelected() {
-  if (getSelectedAlgorithm() === ALGORITHM_IDS.MATRIX_BALL) {
-    throw new Error(UI_TEXT.NOT_IMPLEMENTED_MATRIX_BALL);
-  }
-}
-
 function convertFromTableaux() {
-  ensureRowInsertionSelected();
-
   const P = parseTableau(getById(DOM_IDS.P_INPUT).value);
   const Q = parseTableau(getById(DOM_IDS.Q_INPUT).value);
+  const algorithm = getSelectedAlgorithm();
 
   validateSemistandard(P, "P");
   validateSemistandard(Q, "Q");
-
   if (!sameShape(P, Q)) {
     throw new Error("P and Q must have the same shape.");
   }
 
-  const inverse = inverseRsk(P, Q);
-    const biword = {
-    top: inverse.top,
-    bottom: inverse.bottom,
-    };
-    const matrix = matrixFromBiword(biword.top, biword.bottom);
+  if (algorithm === ALGORITHM_IDS.MATRIX_BALL) {
+    validateStandard(P, "P");
+    validateStandard(Q, "Q");
 
+    const result = inverseMatrixBallFromStandardTableaux(P, Q);
     const steps = [
-    {
-        title: "Start with tableaux",
-        content: `Shape(P) = Shape(Q) = [${shapeOf(P).join(", ")}].\nProceed by reverse row insertion.`,
+      {
+        title: "Start with standard tableaux",
+        content: `Shape(P) = Shape(Q) = [${shapeOf(P).join(", ")}].\nUse the inverse matrix-ball viewpoint to recover the matrix.`,
         state: {
-        P,
-        Q,
-        highlightP: [],
-        highlightQ: [],
+          P,
+          Q,
+          highlightP: [],
+          highlightQ: [],
         },
-    },
-    ...inverse.steps,
-    {
-        title: "Recovered two-rowed array",
-        content:
-        `${formatArray(biword.top, biword.bottom)}\n\n` +
-        "This is the biword recovered from the reverse row-insertion process.",
+      },
+      ...result.steps,
+      {
+        title: "Recovered matrix",
+        content: formatMatrix(result.matrix),
         state: {
-        P,
-        Q,
-        highlightP: [],
-        highlightQ: [],
+          P,
+          Q,
+          highlightP: [],
+          highlightQ: [],
         },
-    },
-    {
-        title: "Build matrix",
-        content: formatMatrix(matrix),
-        state: {
-        P,
-        Q,
-        highlightP: [],
-        highlightQ: [],
-        },
-    },
+      },
     ];
 
     appState.latestOutputs = {
+      P,
+      Q,
+      top: result.biword.top,
+      bottom: result.biword.bottom,
+      matrix: result.matrix,
+      formatArray,
+      formatMatrix,
+    };
+
+    renderOutputs(appState.latestOutputs);
+    setSteps(steps);
+    showStatus("Recovered the matrix from standard tableaux using the inverse matrix-ball view.");
+    return;
+  }
+
+  const inverse = inverseRsk(P, Q);
+  const biword = { top: inverse.top, bottom: inverse.bottom };
+  const matrix = matrixFromBiword(biword.top, biword.bottom);
+
+  const steps = [
+    {
+      title: "Start with tableaux",
+      content: `Shape(P) = Shape(Q) = [${shapeOf(P).join(", ")}].\nProceed by reverse row insertion.`,
+      state: {
+        P,
+        Q,
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+    ...inverse.steps,
+    {
+      title: "Recovered two-rowed array",
+      content:
+        `${formatArray(biword.top, biword.bottom)}\n\n` +
+        "This is the biword recovered from the reverse row-insertion process.",
+      state: {
+        P,
+        Q,
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+    {
+      title: "Build matrix",
+      content: formatMatrix(matrix),
+      state: {
+        P,
+        Q,
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+  ];
+
+  appState.latestOutputs = {
     P,
     Q,
     top: biword.top,
@@ -221,17 +250,14 @@ function convertFromTableaux() {
     matrix,
     formatArray,
     formatMatrix,
-    };
+  };
 
   renderOutputs(appState.latestOutputs);
   setSteps(steps);
-
   showStatus("Converted from tableaux to two-rowed array and matrix.");
 }
 
 function convertFromArray() {
-  ensureRowInsertionSelected();
-
   const top = parseLineOfInts(getById(DOM_IDS.TOP_ROW_INPUT).value);
   const bottom = parseLineOfInts(getById(DOM_IDS.BOTTOM_ROW_INPUT).value);
 
@@ -253,44 +279,24 @@ function convertFromArray() {
     {
       title: "Start with two-rowed array",
       content: formatArray(top, bottom),
-      state: {
-        P: [],
-        Q: [],
-        highlightP: [],
-        highlightQ: [],
-      },
+      state: { P: [], Q: [], highlightP: [], highlightQ: [] },
     },
     !validateLexOrder(top, bottom)
       ? {
           title: "Sort into lexicographic order",
           content: formatArray(lex.top, lex.bottom),
-          state: {
-            P: [],
-            Q: [],
-            highlightP: [],
-            highlightQ: [],
-          },
+          state: { P: [], Q: [], highlightP: [], highlightQ: [] },
         }
       : {
           title: "Lexicographic order",
           content: formatArray(lex.top, lex.bottom),
-          state: {
-            P: [],
-            Q: [],
-            highlightP: [],
-            highlightQ: [],
-          },
+          state: { P: [], Q: [], highlightP: [], highlightQ: [] },
         },
     ...forward.steps,
     {
       title: "Build matrix",
       content: formatMatrix(matrix),
-      state: {
-        P: forward.P,
-        Q: forward.Q,
-        highlightP: [],
-        highlightQ: [],
-      },
+      state: { P: forward.P, Q: forward.Q, highlightP: [], highlightQ: [] },
     },
   ];
 
@@ -306,7 +312,6 @@ function convertFromArray() {
 
   renderOutputs(appState.latestOutputs);
   setSteps(steps);
-
   showStatus("Converted from two-rowed array to tableaux and matrix.");
 }
 
@@ -316,26 +321,22 @@ function convertFromMatrix() {
 
   if (selectedAlgorithm === ALGORITHM_IDS.MATRIX_BALL) {
     const result = matrixBallConstruction(matrix);
+    const biword = biwordFromMatrix(matrix);
 
     const steps = [
-    {
+      {
         title: "Start with matrix",
         content: formatMatrix(matrix),
-        state: {
-        P: [],
-        Q: [],
-        highlightP: [],
-        highlightQ: [],
-        },
-    },
-    ...result.steps,
+        state: { P: [], Q: [], highlightP: [], highlightQ: [] },
+      },
+      ...result.steps,
     ];
 
     appState.latestOutputs = {
       P: result.P,
       Q: result.Q,
-      top: [],
-      bottom: [],
+      top: biword.top,
+      bottom: biword.bottom,
       matrix,
       formatArray,
       formatMatrix,
@@ -347,8 +348,6 @@ function convertFromMatrix() {
     return;
   }
 
-  ensureRowInsertionSelected();
-
   const biword = biwordFromMatrix(matrix);
   const forward = rskFromBiword(biword.top, biword.bottom);
 
@@ -356,22 +355,12 @@ function convertFromMatrix() {
     {
       title: "Start with matrix",
       content: formatMatrix(matrix),
-      state: {
-        P: [],
-        Q: [],
-        highlightP: [],
-        highlightQ: [],
-      },
+      state: { P: [], Q: [], highlightP: [], highlightQ: [] },
     },
     {
       title: "Associated two-rowed array",
       content: formatArray(biword.top, biword.bottom),
-      state: {
-        P: [],
-        Q: [],
-        highlightP: [],
-        highlightQ: [],
-      },
+      state: { P: [], Q: [], highlightP: [], highlightQ: [] },
     },
     ...forward.steps,
   ];
@@ -388,7 +377,6 @@ function convertFromMatrix() {
 
   renderOutputs(appState.latestOutputs);
   setSteps(steps);
-
   showStatus("Converted from matrix to two-rowed array and tableaux.");
 }
 
@@ -397,7 +385,6 @@ function runConversion() {
 
   try {
     const activeMode = getActiveMode();
-
     if (activeMode === MODE_IDS.TABLEAUX) {
       convertFromTableaux();
     } else if (activeMode === MODE_IDS.ARRAY) {
@@ -423,7 +410,6 @@ function initialize() {
     clearNavigatorOnly();
     showStatus("");
   });
-
   getById(DOM_IDS.PREV_STEP_BTN).addEventListener("click", goToPreviousStep);
   getById(DOM_IDS.NEXT_STEP_BTN).addEventListener("click", goToNextStep);
   getById(DOM_IDS.RESET_STEP_BTN).addEventListener("click", resetSteps);
@@ -437,12 +423,7 @@ function initialize() {
   renderTableau(DOM_IDS.P_OUTPUT, []);
   renderTableau(DOM_IDS.Q_OUTPUT, []);
   resetOutputPlaceholders();
-
-  setNavigatorButtonState({
-    hasSteps: false,
-    atStart: true,
-    atEnd: true,
-  });
+  setNavigatorButtonState({ hasSteps: false, atStart: true, atEnd: true });
 }
 
 initialize();

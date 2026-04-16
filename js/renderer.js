@@ -25,54 +25,14 @@ export function showStatus(message, kind = "good") {
   box.innerHTML = `<div class="status ${kind}">${escapeHtml(message)}</div>`;
 }
 
+function clearStepVisualization() {
+  document.getElementById(DOM_IDS.STEP_VISUALIZATION).innerHTML = "";
+}
+
 export function clearSteps() {
   document.getElementById(DOM_IDS.STEPS_OUTPUT).innerHTML = "";
   document.getElementById(DOM_IDS.STEP_COUNTER).textContent = UI_TEXT.NO_STEPS;
   clearStepVisualization();
-}
-
-export function renderStep(step, currentIndex, totalSteps) {
-  const steps = document.getElementById(DOM_IDS.STEPS_OUTPUT);
-  const counter = document.getElementById(DOM_IDS.STEP_COUNTER);
-
-  steps.innerHTML = "";
-  clearStepVisualization();
-
-  if (!step) {
-    counter.textContent = UI_TEXT.NO_STEPS;
-    return;
-  }
-
-  counter.textContent = `Step ${currentIndex + 1} of ${totalSteps}`;
-
-  if (step.kind === STEP_KIND.MATRIX_BALL_ROUND && step.state?.matrix && step.state?.labeledBalls) {
-    renderMatrixBallDiagram({
-      matrix: step.state.matrix,
-      labeledBalls: step.state.labeledBalls,
-      nextMatrix: step.state.nextMatrix,
-      caption: step.state.nextMatrix
-        ? `Next matrix: ${step.state.nextMatrix.map((row) => `[${row.join(", ")}]`).join(" ")}`
-        : "",
-    });
-  }
-
-  const box = document.createElement("div");
-  box.className = "step";
-
-  box.innerHTML = `
-    <div class="step-title">${escapeHtml(step.title)}</div>
-    <div class="mono">${escapeHtml(step.content)}</div>
-  `;
-
-  steps.appendChild(box);
-}
-
-function isHighlightedCell(r, c, highlights) {
-  return highlights.some(([rr, cc]) => rr === r && cc === c);
-}
-
-function clearStepVisualization() {
-  document.getElementById(DOM_IDS.STEP_VISUALIZATION).innerHTML = "";
 }
 
 function svgEl(tag, attrs = {}) {
@@ -81,17 +41,6 @@ function svgEl(tag, attrs = {}) {
     el.setAttribute(key, String(value));
   }
   return el;
-}
-
-function countBallsByCell(labeledBalls) {
-  const counts = new Map();
-
-  for (const ball of labeledBalls) {
-    const key = `${ball.row},${ball.col}`;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-
-  return counts;
 }
 
 function renderMatrixBallDiagram({ matrix, labeledBalls, nextMatrix = null, caption = "" }) {
@@ -104,7 +53,6 @@ function renderMatrixBallDiagram({ matrix, labeledBalls, nextMatrix = null, capt
 
   const rows = matrix.length;
   const cols = matrix[0].length;
-
   const {
     CELL_WIDTH,
     CELL_HEIGHT,
@@ -125,21 +73,12 @@ function renderMatrixBallDiagram({ matrix, labeledBalls, nextMatrix = null, capt
     "aria-label": "Matrix-ball construction diagram",
   });
 
-  svg.appendChild(
-    svgEl("rect", {
-      x: 0,
-      y: 0,
-      width,
-      height,
-      fill: "#ffffff",
-    })
-  );
+  svg.appendChild(svgEl("rect", { x: 0, y: 0, width, height, fill: "#ffffff" }));
 
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
       const x = PADDING + c * CELL_WIDTH;
       const y = PADDING + r * CELL_HEIGHT;
-
       svg.appendChild(
         svgEl("rect", {
           x,
@@ -158,7 +97,6 @@ function renderMatrixBallDiagram({ matrix, labeledBalls, nextMatrix = null, capt
   for (let c = 0; c < cols; c += 1) {
     const tx = PADDING + c * CELL_WIDTH + CELL_WIDTH / 2;
     const ty = PADDING - 8;
-
     const text = svgEl("text", {
       x: tx,
       y: ty,
@@ -174,7 +112,6 @@ function renderMatrixBallDiagram({ matrix, labeledBalls, nextMatrix = null, capt
   for (let r = 0; r < rows; r += 1) {
     const tx = PADDING - 10;
     const ty = PADDING + r * CELL_HEIGHT + CELL_HEIGHT / 2 + 4;
-
     const text = svgEl("text", {
       x: tx,
       y: ty,
@@ -190,9 +127,7 @@ function renderMatrixBallDiagram({ matrix, labeledBalls, nextMatrix = null, capt
   const byCell = new Map();
   for (const ball of labeledBalls ?? []) {
     const key = `${ball.row},${ball.col}`;
-    if (!byCell.has(key)) {
-      byCell.set(key, []);
-    }
+    if (!byCell.has(key)) byCell.set(key, []);
     byCell.get(key).push(ball);
   }
 
@@ -236,18 +171,54 @@ function renderMatrixBallDiagram({ matrix, labeledBalls, nextMatrix = null, capt
 
   host.appendChild(svg);
 
-  if (nextMatrix) {
+  if (nextMatrix || caption) {
     const captionDiv = document.createElement("div");
     captionDiv.className = "matrix-ball-caption";
-    captionDiv.textContent =
-      caption || `Next matrix: ${nextMatrix.map((row) => `[${row.join(", ")}]`).join(" ")}`;
-    host.appendChild(captionDiv);
-  } else if (caption) {
-    const captionDiv = document.createElement("div");
-    captionDiv.className = "matrix-ball-caption";
-    captionDiv.textContent = caption;
+    if (caption) {
+      captionDiv.textContent = caption;
+    } else {
+      captionDiv.textContent = `Next matrix: ${nextMatrix.map((row) => `[${row.join(", ")}]`).join(" ")}`;
+    }
     host.appendChild(captionDiv);
   }
+}
+
+export function renderStep(step, currentIndex, totalSteps) {
+  const steps = document.getElementById(DOM_IDS.STEPS_OUTPUT);
+  const counter = document.getElementById(DOM_IDS.STEP_COUNTER);
+
+  steps.innerHTML = "";
+  clearStepVisualization();
+
+  if (!step) {
+    counter.textContent = UI_TEXT.NO_STEPS;
+    return;
+  }
+
+  counter.textContent = `Step ${currentIndex + 1} of ${totalSteps}`;
+
+  if (step.kind === STEP_KIND.MATRIX_BALL_ROUND && step.state?.matrix && step.state?.labeledBalls) {
+    renderMatrixBallDiagram({
+      matrix: step.state.matrix,
+      labeledBalls: step.state.labeledBalls,
+      nextMatrix: step.state.nextMatrix,
+      caption: step.state.nextMatrix
+        ? `Next matrix: ${step.state.nextMatrix.map((row) => `[${row.join(", ")}]`).join(" ")}`
+        : "",
+    });
+  }
+
+  const box = document.createElement("div");
+  box.className = "step";
+  box.innerHTML = `
+    <div class="step-title">${escapeHtml(step.title)}</div>
+    <div class="mono">${escapeHtml(step.content)}</div>
+  `;
+  steps.appendChild(box);
+}
+
+function isHighlightedCell(r, c, highlights) {
+  return highlights.some(([rr, cc]) => rr === r && cc === c);
 }
 
 export function renderTableau(containerId, T, highlights = []) {
@@ -268,7 +239,6 @@ export function renderTableau(containerId, T, highlights = []) {
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
       const cell = document.createElement("div");
-
       if (c < T[r].length) {
         cell.className = "tableau-cell";
         if (isHighlightedCell(r, c, highlights)) {
@@ -278,7 +248,6 @@ export function renderTableau(containerId, T, highlights = []) {
       } else {
         cell.className = "empty-cell";
       }
-
       grid.appendChild(cell);
     }
   }
@@ -299,8 +268,12 @@ export function renderOutputs({
 }) {
   renderTableau(DOM_IDS.P_OUTPUT, P, highlightP);
   renderTableau(DOM_IDS.Q_OUTPUT, Q, highlightQ);
-  document.getElementById(DOM_IDS.ARRAY_OUTPUT).textContent = formatArray(top, bottom);
-  document.getElementById(DOM_IDS.MATRIX_OUTPUT).textContent = formatMatrix(matrix);
+  document.getElementById(DOM_IDS.ARRAY_OUTPUT).textContent = top.length > 0
+    ? formatArray(top, bottom)
+    : UI_TEXT.EMPTY_OUTPUT;
+  document.getElementById(DOM_IDS.MATRIX_OUTPUT).textContent = matrix.length > 0
+    ? formatMatrix(matrix)
+    : UI_TEXT.EMPTY_OUTPUT;
 }
 
 export function setNavigatorButtonState({ hasSteps, atStart, atEnd }) {

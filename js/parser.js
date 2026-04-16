@@ -65,6 +65,18 @@ export function validateSemistandard(T, name) {
   }
 }
 
+export function validateStandard(T, name) {
+  validateSemistandard(T, name);
+  const entries = T.flat();
+  const sorted = [...entries].sort((a, b) => a - b);
+
+  for (let i = 0; i < sorted.length; i += 1) {
+    if (sorted[i] !== i + 1) {
+      throw new Error(`${name} is not standard: its entries must be exactly 1, 2, ..., n.`);
+    }
+  }
+}
+
 export function sameShape(A, B) {
   if (A.length !== B.length) return false;
   for (let i = 0; i < A.length; i += 1) {
