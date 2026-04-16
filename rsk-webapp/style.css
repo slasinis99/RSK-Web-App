@@ -1,0 +1,286 @@
+:root {
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --border: #d7dbe7;
+  --text: #202534;
+  --muted: #5c6478;
+  --accent: #3859d8;
+  --accent-soft: #e8edff;
+  --good: #1f7a39;
+  --bad: #b42318;
+  --shadow: 0 8px 24px rgba(24, 39, 75, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, #263a93, #4461db);
+  color: white;
+  box-shadow: var(--shadow);
+}
+
+header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.6rem;
+}
+
+header p {
+  margin: 0;
+  opacity: 0.95;
+  max-width: 900px;
+  line-height: 1.4;
+}
+
+main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 1rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  background: #fcfdff;
+}
+
+.panel-header h2,
+.panel-header h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.panel-header p {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  line-height: 1.35;
+  font-size: 0.95rem;
+}
+
+.panel-body {
+  padding: 1rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.tab-btn,
+button {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: white;
+  color: var(--text);
+  padding: 0.6rem 0.9rem;
+  font: inherit;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.tab-btn:hover,
+button:hover {
+  border-color: var(--accent);
+}
+
+.tab-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.secondary {
+  background: #fff;
+}
+
+.mode {
+  display: none;
+}
+
+.mode.active {
+  display: block;
+}
+
+textarea,
+input,
+select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  color: var(--text);
+  background: white;
+}
+
+textarea {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.45;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.help {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
+  margin-top: 0.4rem;
+}
+
+.status {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.status.good {
+  background: #ebfff0;
+  border-color: #b9ebc6;
+  color: var(--good);
+}
+
+.status.bad {
+  background: #fff0f0;
+  border-color: #f2c7c7;
+  color: var(--bad);
+}
+
+.output-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.steps-card {
+  margin-top: 1rem;
+}
+
+.tableau-grid {
+  display: inline-grid;
+  gap: 2px;
+  background: #cfd5e6;
+  padding: 2px;
+  border-radius: 10px;
+}
+
+.tableau-cell {
+  width: 42px;
+  height: 42px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.empty-cell {
+  width: 42px;
+  height: 42px;
+  opacity: 0;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.steps {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.step {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem;
+  background: #fcfdff;
+}
+
+.step-title {
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.small {
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .output-grid {
+    grid-template-columns: 1fr;
+  }
+}

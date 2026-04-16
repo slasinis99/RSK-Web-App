@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RSK / Matrix / Tableaux Explorer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>RSK / Two-Rowed Array / Matrix Explorer</h1>
+    <p>
+      Enter semistandard tableaux, a two-rowed array, or a matrix. The app converts between them and shows the steps.
+      This version implements lexicographic sorting, row insertion, reverse row insertion, and matrix/array conversion.
+    </p>
+  </header>
+
+  <main>
+    <div class="layout">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Input</h2>
+          <p>Choose one representation and click convert.</p>
+          <div class="tabs">
+            <button class="tab-btn active" data-mode="tableauxMode">Pair of Tableaux</button>
+            <button class="tab-btn" data-mode="arrayMode">Two-Rowed Array</button>
+            <button class="tab-btn" data-mode="matrixMode">Matrix</button>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <div id="status"></div>
+
+          <div id="tableauxMode" class="mode active">
+            <div class="field">
+              <label for="pInput">P tableau</label>
+              <textarea id="pInput">1 1 2
+2 3
+4</textarea>
+              <div class="help">One row per line, entries separated by spaces.</div>
+            </div>
+
+            <div class="field">
+              <label for="qInput">Q tableau</label>
+              <textarea id="qInput">1 1 3
+2 4
+4</textarea>
+              <div class="help">Must have the same shape as P.</div>
+            </div>
+          </div>
+
+          <div id="arrayMode" class="mode">
+            <div class="field">
+              <label for="topRowInput">Top row</label>
+              <textarea id="topRowInput">1 1 2 2 4 4</textarea>
+            </div>
+            <div class="field">
+              <label for="bottomRowInput">Bottom row</label>
+              <textarea id="bottomRowInput">1 2 1 3 2 4</textarea>
+              <div class="help">The app can sort the array into lexicographic order automatically.</div>
+            </div>
+          </div>
+
+          <div id="matrixMode" class="mode">
+            <div class="field">
+              <label for="matrixInput">Matrix</label>
+              <textarea id="matrixInput">2 0 1
+1 2 0
+0 1 1</textarea>
+              <div class="help">Nonnegative integer matrix. Rows correspond to top-row values, columns to bottom-row values.</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="convertBtn" class="primary">Convert</button>
+            <button id="sampleBtn" class="secondary">Load Sample</button>
+            <button id="clearStepsBtn" class="secondary">Clear Steps</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Output</h2>
+          <p>The outputs below are synchronized: tableaux, two-rowed array, and matrix.</p>
+        </div>
+        <div class="panel-body">
+          <div class="output-grid">
+            <div class="card">
+              <h3>P tableau</h3>
+              <div id="pOutput"></div>
+            </div>
+            <div class="card">
+              <h3>Q tableau</h3>
+              <div id="qOutput"></div>
+            </div>
+            <div class="card">
+              <h3>Two-rowed array</h3>
+              <div id="arrayOutput" class="mono"></div>
+            </div>
+            <div class="card">
+              <h3>Matrix</h3>
+              <div id="matrixOutput" class="mono"></div>
+            </div>
+          </div>
+
+          <div class="card steps-card">
+            <h3>Step-by-step log</h3>
+            <div id="stepsOutput" class="steps"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
