@@ -354,6 +354,28 @@ function extractRowsFromLabelGroups(groups) {
   return { pRow, qRow, labels };
 }
 
+function compareBallsNorthwestToSoutheast(a, b) {
+  if (a.row !== b.row) return a.row - b.row;
+  return a.col - b.col;
+}
+
+export function groupedBallsByLabel(labeledBalls) {
+  const groups = new Map();
+
+  for (const ball of labeledBalls) {
+    if (!groups.has(ball.label)) {
+      groups.set(ball.label, []);
+    }
+    groups.get(ball.label).push(ball);
+  }
+
+  for (const balls of groups.values()) {
+    balls.sort(compareBallsNorthwestToSoutheast);
+  }
+
+  return groups;
+}
+
 export function nextMatrixFromRepeatedLabels(labeledCells, numRows, numCols) {
   const groups = groupedBallsByLabel(labeledCells);
   const next = makeZeroMatrix(numRows, numCols);
