@@ -17,11 +17,11 @@ import {
   formatArray,
   formatMatrix,
   validateLexOrder,
-  sortBiwordLex,
   rskFromBiword,
   inverseRsk,
   biwordFromMatrix,
   matrixFromBiword,
+  matrixBallConstruction,
 } from "./algorithms.js";
 import {
   showStatus,
@@ -311,13 +311,13 @@ function convertFromArray() {
 }
 
 function convertFromMatrix() {
-  ensureRowInsertionSelected();
-
   const matrix = parseMatrix(getById(DOM_IDS.MATRIX_INPUT).value);
-  const biword = biwordFromMatrix(matrix);
-  const forward = rskFromBiword(biword.top, biword.bottom);
+  const selectedAlgorithm = getSelectedAlgorithm();
 
-  const steps = [
+  if (selectedAlgorithm === ALGORITHM_IDS.MATRIX_BALL) {
+    const result = matrixBallConstruction(matrix);
+
+    const steps = [
     {
         title: "Start with matrix",
         content: formatMatrix(matrix),
@@ -328,18 +328,53 @@ function convertFromMatrix() {
         highlightQ: [],
         },
     },
+    ...result.steps,
+    ];
+
+    appState.latestOutputs = {
+      P: result.P,
+      Q: result.Q,
+      top: [],
+      bottom: [],
+      matrix,
+      formatArray,
+      formatMatrix,
+    };
+
+    renderOutputs(appState.latestOutputs);
+    setSteps(steps);
+    showStatus("Converted from matrix to tableaux using the matrix-ball construction.");
+    return;
+  }
+
+  ensureRowInsertionSelected();
+
+  const biword = biwordFromMatrix(matrix);
+  const forward = rskFromBiword(biword.top, biword.bottom);
+
+  const steps = [
     {
-        title: "Associated two-rowed array",
-        content: formatArray(biword.top, biword.bottom),
-        state: {
+      title: "Start with matrix",
+      content: formatMatrix(matrix),
+      state: {
         P: [],
         Q: [],
         highlightP: [],
         highlightQ: [],
-        },
+      },
+    },
+    {
+      title: "Associated two-rowed array",
+      content: formatArray(biword.top, biword.bottom),
+      state: {
+        P: [],
+        Q: [],
+        highlightP: [],
+        highlightQ: [],
+      },
     },
     ...forward.steps,
-    ];
+  ];
 
   appState.latestOutputs = {
     P: forward.P,

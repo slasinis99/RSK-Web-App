@@ -13,6 +13,7 @@ export const DOM_IDS = {
   STATUS: "status",
   STEPS_OUTPUT: "stepsOutput",
   STEP_COUNTER: "stepCounter",
+  STEP_VISUALIZATION: "stepVisualization",
 
   P_INPUT: "pInput",
   Q_INPUT: "qInput",
@@ -50,4 +51,15 @@ export const STEP_KIND = {
   FORWARD_INSERT: "forwardInsert",
   REVERSE_INSERT: "reverseInsert",
   MATRIX_ENTRY: "matrixEntry",
+  MATRIX_BALL_ROUND: "matrixBallRound",
+};
+
+export const MATRIX_BALL_UI = {
+  CELL_WIDTH: 72,
+  CELL_HEIGHT: 72,
+  BALL_RADIUS: 11,
+  DIAGONAL_STEP: 16,
+  PADDING: 24,
+  LABEL_FONT_SIZE: 11,
+  INDEX_FONT_SIZE: 12,
 };

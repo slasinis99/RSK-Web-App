@@ -269,3 +269,162 @@ export function matrixFromBiword(top, bottom) {
 
   return matrix;
 }
+
+import { STEP_KIND } from "./constants.js";
+
+function makeZeroMatrix(numRows, numCols) {
+  return Array.from({ length: numRows }, () => Array(numCols).fill(0));
+}
+
+function maxLabelInNorthwestRegion(labeledCells, row, col) {
+  let maxLabel = 0;
+
+  for (const ball of labeledCells) {
+    if (ball.row <= row && ball.col <= col) {
+      if (ball.label > maxLabel) {
+        maxLabel = ball.label;
+      }
+    }
+  }
+
+  return maxLabel;
+}
+
+function compareBallsNorthwestToSoutheast(a, b) {
+  if (a.row !== b.row) return a.row - b.row;
+  return a.col - b.col;
+}
+
+export function labelBallMatrix(matrix) {
+  const labeledCells = [];
+
+  for (let row = 0; row < matrix.length; row += 1) {
+    for (let col = 0; col < matrix[row].length; col += 1) {
+      const count = matrix[row][col];
+      if (count <= 0) continue;
+
+      const startLabel = maxLabelInNorthwestRegion(labeledCells, row, col) + 1;
+
+      for (let offset = 0; offset < count; offset += 1) {
+        labeledCells.push({
+          row,
+          col,
+          label: startLabel + offset,
+          offsetInCell: offset,
+        });
+      }
+    }
+  }
+
+  return labeledCells;
+}
+
+export function groupedBallsByLabel(labeledCells) {
+  const groups = new Map();
+
+  for (const ball of labeledCells) {
+    if (!groups.has(ball.label)) {
+      groups.set(ball.label, []);
+    }
+    groups.get(ball.label).push(ball);
+  }
+
+  for (const balls of groups.values()) {
+    balls.sort(compareBallsNorthwestToSoutheast);
+  }
+
+  return groups;
+}
+
+export function extractPQRowFromLabels(labeledCells) {
+  const groups = groupedBallsByLabel(labeledCells);
+  const labels = [...groups.keys()].sort((a, b) => a - b);
+
+  const pRow = [];
+  const qRow = [];
+
+  for (const label of labels) {
+    const balls = groups.get(label);
+
+    const leftMostCol = Math.min(...balls.map((ball) => ball.col));
+    const topMostRow = Math.min(...balls.map((ball) => ball.row));
+
+    pRow.push(leftMostCol + 1);
+    qRow.push(topMostRow + 1);
+  }
+
+  return { pRow, qRow, labels, groups };
+}
+
+export function nextMatrixFromRepeatedLabels(labeledCells, numRows, numCols) {
+  const groups = groupedBallsByLabel(labeledCells);
+  const next = makeZeroMatrix(numRows, numCols);
+
+  for (const balls of groups.values()) {
+    if (balls.length <= 1) continue;
+
+    for (let i = 0; i < balls.length - 1; i += 1) {
+      const sourceA = balls[i];
+      const sourceB = balls[i + 1];
+
+      const newRow = sourceB.row;
+      const newCol = sourceA.col;
+
+      next[newRow][newCol] += 1;
+    }
+  }
+
+  return next;
+}
+
+export function matrixHasBalls(matrix) {
+  return matrix.some((row) => row.some((value) => value > 0));
+}
+
+export function matrixBallConstruction(matrix) {
+  const numRows = matrix.length;
+  const numCols = matrix[0]?.length ?? 0;
+
+  let currentMatrix = matrix.map((row) => [...row]);
+  const P = [];
+  const Q = [];
+  const steps = [];
+
+  let round = 1;
+
+  while (matrixHasBalls(currentMatrix)) {
+    const labeled = labelBallMatrix(currentMatrix);
+    const { pRow, qRow } = extractPQRowFromLabels(labeled);
+    const nextMatrix = nextMatrixFromRepeatedLabels(labeled, numRows, numCols);
+
+    P.push(pRow);
+    Q.push(qRow);
+
+    steps.push({
+      kind: STEP_KIND.MATRIX_BALL_ROUND,
+      title: `Matrix-ball round ${round}`,
+      content: [
+        `Current matrix:`,
+        formatMatrix(currentMatrix),
+        ``,
+        `Row ${round} of P: [${pRow.join(", ")}]`,
+        `Row ${round} of Q: [${qRow.join(", ")}]`,
+        ``,
+        `Next matrix:`,
+        formatMatrix(nextMatrix),
+      ].join("\n"),
+      state: {
+        matrix: currentMatrix.map((row) => [...row]),
+        labeledBalls: labeled.map((ball) => ({ ...ball })),
+        nextMatrix: nextMatrix.map((row) => [...row]),
+        P: P.map((row) => [...row]),
+        Q: Q.map((row) => [...row]),
+      },
+    });
+
+    currentMatrix = nextMatrix;
+    round += 1;
+  }
+
+  return { P, Q, steps };
+}

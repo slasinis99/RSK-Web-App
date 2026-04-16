@@ -1,4 +1,10 @@
-import { DOM_IDS, TABLEAU_UI, UI_TEXT } from "./constants.js";
+import {
+  DOM_IDS,
+  TABLEAU_UI,
+  UI_TEXT,
+  MATRIX_BALL_UI,
+  STEP_KIND,
+} from "./constants.js";
 
 export function escapeHtml(value) {
   return String(value)
@@ -22,6 +28,7 @@ export function showStatus(message, kind = "good") {
 export function clearSteps() {
   document.getElementById(DOM_IDS.STEPS_OUTPUT).innerHTML = "";
   document.getElementById(DOM_IDS.STEP_COUNTER).textContent = UI_TEXT.NO_STEPS;
+  clearStepVisualization();
 }
 
 export function renderStep(step, currentIndex, totalSteps) {
@@ -29,6 +36,7 @@ export function renderStep(step, currentIndex, totalSteps) {
   const counter = document.getElementById(DOM_IDS.STEP_COUNTER);
 
   steps.innerHTML = "";
+  clearStepVisualization();
 
   if (!step) {
     counter.textContent = UI_TEXT.NO_STEPS;
@@ -36,6 +44,17 @@ export function renderStep(step, currentIndex, totalSteps) {
   }
 
   counter.textContent = `Step ${currentIndex + 1} of ${totalSteps}`;
+
+  if (step.kind === STEP_KIND.MATRIX_BALL_ROUND && step.state?.matrix && step.state?.labeledBalls) {
+    renderMatrixBallDiagram({
+      matrix: step.state.matrix,
+      labeledBalls: step.state.labeledBalls,
+      nextMatrix: step.state.nextMatrix,
+      caption: step.state.nextMatrix
+        ? `Next matrix: ${step.state.nextMatrix.map((row) => `[${row.join(", ")}]`).join(" ")}`
+        : "",
+    });
+  }
 
   const box = document.createElement("div");
   box.className = "step";
@@ -50,6 +69,185 @@ export function renderStep(step, currentIndex, totalSteps) {
 
 function isHighlightedCell(r, c, highlights) {
   return highlights.some(([rr, cc]) => rr === r && cc === c);
+}
+
+function clearStepVisualization() {
+  document.getElementById(DOM_IDS.STEP_VISUALIZATION).innerHTML = "";
+}
+
+function svgEl(tag, attrs = {}) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    el.setAttribute(key, String(value));
+  }
+  return el;
+}
+
+function countBallsByCell(labeledBalls) {
+  const counts = new Map();
+
+  for (const ball of labeledBalls) {
+    const key = `${ball.row},${ball.col}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
+function renderMatrixBallDiagram({ matrix, labeledBalls, nextMatrix = null, caption = "" }) {
+  const host = document.getElementById(DOM_IDS.STEP_VISUALIZATION);
+  host.innerHTML = "";
+
+  if (!matrix || matrix.length === 0 || matrix[0].length === 0) {
+    return;
+  }
+
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+
+  const {
+    CELL_WIDTH,
+    CELL_HEIGHT,
+    BALL_RADIUS,
+    DIAGONAL_STEP,
+    PADDING,
+    LABEL_FONT_SIZE,
+    INDEX_FONT_SIZE,
+  } = MATRIX_BALL_UI;
+
+  const width = PADDING * 2 + cols * CELL_WIDTH;
+  const height = PADDING * 2 + rows * CELL_HEIGHT;
+
+  const svg = svgEl("svg", {
+    viewBox: `0 0 ${width} ${height}`,
+    class: "matrix-ball-svg",
+    role: "img",
+    "aria-label": "Matrix-ball construction diagram",
+  });
+
+  svg.appendChild(
+    svgEl("rect", {
+      x: 0,
+      y: 0,
+      width,
+      height,
+      fill: "#ffffff",
+    })
+  );
+
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const x = PADDING + c * CELL_WIDTH;
+      const y = PADDING + r * CELL_HEIGHT;
+
+      svg.appendChild(
+        svgEl("rect", {
+          x,
+          y,
+          width: CELL_WIDTH,
+          height: CELL_HEIGHT,
+          fill: "#fdfdff",
+          stroke: "#cfd5e6",
+          "stroke-width": 1.5,
+          rx: 6,
+        })
+      );
+    }
+  }
+
+  for (let c = 0; c < cols; c += 1) {
+    const tx = PADDING + c * CELL_WIDTH + CELL_WIDTH / 2;
+    const ty = PADDING - 8;
+
+    const text = svgEl("text", {
+      x: tx,
+      y: ty,
+      "text-anchor": "middle",
+      "font-size": INDEX_FONT_SIZE,
+      fill: "#5c6478",
+      "font-family": "system-ui, sans-serif",
+    });
+    text.textContent = String(c + 1);
+    svg.appendChild(text);
+  }
+
+  for (let r = 0; r < rows; r += 1) {
+    const tx = PADDING - 10;
+    const ty = PADDING + r * CELL_HEIGHT + CELL_HEIGHT / 2 + 4;
+
+    const text = svgEl("text", {
+      x: tx,
+      y: ty,
+      "text-anchor": "end",
+      "font-size": INDEX_FONT_SIZE,
+      fill: "#5c6478",
+      "font-family": "system-ui, sans-serif",
+    });
+    text.textContent = String(r + 1);
+    svg.appendChild(text);
+  }
+
+  const byCell = new Map();
+  for (const ball of labeledBalls ?? []) {
+    const key = `${ball.row},${ball.col}`;
+    if (!byCell.has(key)) {
+      byCell.set(key, []);
+    }
+    byCell.get(key).push(ball);
+  }
+
+  for (const balls of byCell.values()) {
+    balls.sort((a, b) => a.offsetInCell - b.offsetInCell);
+  }
+
+  for (const [key, balls] of byCell.entries()) {
+    const [row, col] = key.split(",").map(Number);
+    const cellX = PADDING + col * CELL_WIDTH;
+    const cellY = PADDING + row * CELL_HEIGHT;
+
+    for (let i = 0; i < balls.length; i += 1) {
+      const cx = cellX + 18 + i * DIAGONAL_STEP;
+      const cy = cellY + 18 + i * DIAGONAL_STEP;
+
+      svg.appendChild(
+        svgEl("circle", {
+          cx,
+          cy,
+          r: BALL_RADIUS,
+          fill: "#fff7cc",
+          stroke: "#d4aa1f",
+          "stroke-width": 1.5,
+        })
+      );
+
+      const label = svgEl("text", {
+        x: cx,
+        y: cy + 3.5,
+        "text-anchor": "middle",
+        "font-size": LABEL_FONT_SIZE,
+        fill: "#202534",
+        "font-family": "system-ui, sans-serif",
+        "font-weight": "700",
+      });
+      label.textContent = String(balls[i].label);
+      svg.appendChild(label);
+    }
+  }
+
+  host.appendChild(svg);
+
+  if (nextMatrix) {
+    const captionDiv = document.createElement("div");
+    captionDiv.className = "matrix-ball-caption";
+    captionDiv.textContent =
+      caption || `Next matrix: ${nextMatrix.map((row) => `[${row.join(", ")}]`).join(" ")}`;
+    host.appendChild(captionDiv);
+  } else if (caption) {
+    const captionDiv = document.createElement("div");
+    captionDiv.className = "matrix-ball-caption";
+    captionDiv.textContent = caption;
+    host.appendChild(captionDiv);
+  }
 }
 
 export function renderTableau(containerId, T, highlights = []) {
