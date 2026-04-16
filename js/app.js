@@ -171,52 +171,57 @@ function convertFromTableaux() {
   }
 
   const inverse = inverseRsk(P, Q);
-  const lex = sortBiwordLex(inverse.top, inverse.bottom);
-  const matrix = matrixFromBiword(lex.top, lex.bottom);
+    const biword = {
+    top: inverse.top,
+    bottom: inverse.bottom,
+    };
+    const matrix = matrixFromBiword(biword.top, biword.bottom);
 
-  const steps = [
+    const steps = [
     {
-      title: "Start with tableaux",
-      content: `Shape(P) = Shape(Q) = [${shapeOf(P).join(", ")}].\nProceed by reverse row insertion.`,
-      state: {
+        title: "Start with tableaux",
+        content: `Shape(P) = Shape(Q) = [${shapeOf(P).join(", ")}].\nProceed by reverse row insertion.`,
+        state: {
         P,
         Q,
         highlightP: [],
         highlightQ: [],
-      },
+        },
     },
     ...inverse.steps,
     {
-      title: "Lexicographic order",
-      content: formatArray(lex.top, lex.bottom),
-      state: {
+        title: "Recovered two-rowed array",
+        content:
+        `${formatArray(biword.top, biword.bottom)}\n\n` +
+        "This is the biword recovered from the reverse row-insertion process.",
+        state: {
         P,
         Q,
         highlightP: [],
         highlightQ: [],
-      },
+        },
     },
     {
-      title: "Build matrix",
-      content: formatMatrix(matrix),
-      state: {
+        title: "Build matrix",
+        content: formatMatrix(matrix),
+        state: {
         P,
         Q,
         highlightP: [],
         highlightQ: [],
-      },
+        },
     },
-  ];
+    ];
 
-  appState.latestOutputs = {
+    appState.latestOutputs = {
     P,
     Q,
-    top: lex.top,
-    bottom: lex.bottom,
+    top: biword.top,
+    bottom: biword.bottom,
     matrix,
     formatArray,
     formatMatrix,
-  };
+    };
 
   renderOutputs(appState.latestOutputs);
   setSteps(steps);
