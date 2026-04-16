@@ -10,7 +10,6 @@ import {
   parseTableau,
   parseMatrix,
   validateSemistandard,
-  validateStandard,
   sameShape,
 } from "./parser.js";
 import {
@@ -24,7 +23,6 @@ import {
   biwordFromMatrix,
   matrixFromBiword,
   matrixBallConstruction,
-  inverseMatrixBallFromStandardTableaux,
 } from "./algorithms.js";
 import {
   showStatus,
@@ -158,14 +156,15 @@ function convertFromTableaux() {
   }
 
   if (algorithm === ALGORITHM_IDS.MATRIX_BALL) {
-    validateStandard(P, "P");
-    validateStandard(Q, "Q");
+    const inverse = inverseRsk(P, Q);
+    const biword = { top: inverse.top, bottom: inverse.bottom };
+    const matrix = matrixFromBiword(biword.top, biword.bottom);
+    const replay = matrixBallConstruction(matrix);
 
-    const result = inverseMatrixBallFromStandardTableaux(P, Q);
     const steps = [
       {
-        title: "Start with standard tableaux",
-        content: `Shape(P) = Shape(Q) = [${shapeOf(P).join(", ")}].\nUse the inverse matrix-ball viewpoint to recover the matrix.`,
+        title: "Start with tableaux",
+        content: `Shape(P) = Shape(Q) = [${shapeOf(P).join(", ")}].\nRecover the biword, build the matrix, and view its matrix-ball layers.`,
         state: {
           P,
           Q,
@@ -173,10 +172,22 @@ function convertFromTableaux() {
           highlightQ: [],
         },
       },
-      ...result.steps,
+      ...inverse.steps,
+      {
+        title: "Recovered two-rowed array",
+        content:
+          `${formatArray(biword.top, biword.bottom)}\n\n` +
+          "This is the biword recovered from the reverse row-insertion process.",
+        state: {
+          P,
+          Q,
+          highlightP: [],
+          highlightQ: [],
+        },
+      },
       {
         title: "Recovered matrix",
-        content: formatMatrix(result.matrix),
+        content: formatMatrix(matrix),
         state: {
           P,
           Q,
@@ -184,21 +195,22 @@ function convertFromTableaux() {
           highlightQ: [],
         },
       },
+      ...replay.steps,
     ];
 
     appState.latestOutputs = {
-      P,
-      Q,
-      top: result.biword.top,
-      bottom: result.biword.bottom,
-      matrix: result.matrix,
+      P: replay.P,
+      Q: replay.Q,
+      top: biword.top,
+      bottom: biword.bottom,
+      matrix,
       formatArray,
       formatMatrix,
     };
 
     renderOutputs(appState.latestOutputs);
     setSteps(steps);
-    showStatus("Recovered the matrix from standard tableaux using the inverse matrix-ball view.");
+    showStatus("Recovered the matrix from semistandard tableaux and displayed its matrix-ball construction.");
     return;
   }
 
