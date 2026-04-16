@@ -335,8 +335,8 @@ function extractRowsFromLabelGroups(groups) {
 }
 
 function compareBallsNorthwestToSoutheast(a, b) {
-  if (a.row !== b.row) return a.row - b.row;
-  return a.col - b.col;
+  if (a.col !== b.col) return a.col - b.col;
+  return a.row - b.row;
 }
 
 export function groupedBallsByLabel(labeledBalls) {
