@@ -318,26 +318,6 @@ export function labelBallMatrix(matrix) {
   return labeledBalls;
 }
 
-function groupBallsByLabel(labeledBalls) {
-  const groups = new Map();
-
-  for (const ball of labeledBalls) {
-    if (!groups.has(ball.label)) {
-      groups.set(ball.label, []);
-    }
-    groups.get(ball.label).push(ball);
-  }
-
-  for (const balls of groups.values()) {
-    balls.sort((a, b) => {
-      if (a.col !== b.col) return a.col - b.col;
-      return b.row - a.row;
-    });
-  }
-
-  return groups;
-}
-
 function extractRowsFromLabelGroups(groups) {
   const labels = [...groups.keys()].sort((a, b) => a - b);
   const pRow = [];
@@ -409,7 +389,7 @@ export function matrixBallConstruction(matrix) {
 
   while (matrixHasBalls(currentMatrix)) {
     const labeledBalls = labelBallMatrix(currentMatrix);
-    const groups = groupBallsByLabel(labeledBalls);
+    const groups = groupedBallsByLabel(labeledBalls);
     const { pRow, qRow } = extractRowsFromLabelGroups(groups);
     const nextMatrix = nextMatrixFromRepeatedLabels(labeledBalls, numRows, numCols);
 
