@@ -10,8 +10,8 @@
   <header>
     <h1>RSK / Two-Rowed Array / Matrix Explorer</h1>
     <p>
-      Enter semistandard tableaux, a two-rowed array, or a matrix. The app converts between them and shows the steps.
-      This version implements lexicographic sorting, row insertion, reverse row insertion, and matrix/array conversion.
+      Enter semistandard tableaux, a two-rowed array, or a matrix.
+      The app converts between them and shows the intermediate steps.
     </p>
   </header>
 
@@ -34,17 +34,13 @@
           <div id="tableauxMode" class="mode active">
             <div class="field">
               <label for="pInput">P tableau</label>
-              <textarea id="pInput">1 1 2
-2 3
-4</textarea>
+              <textarea id="pInput"></textarea>
               <div class="help">One row per line, entries separated by spaces.</div>
             </div>
 
             <div class="field">
               <label for="qInput">Q tableau</label>
-              <textarea id="qInput">1 1 3
-2 4
-4</textarea>
+              <textarea id="qInput"></textarea>
               <div class="help">Must have the same shape as P.</div>
             </div>
           </div>
@@ -52,11 +48,11 @@
           <div id="arrayMode" class="mode">
             <div class="field">
               <label for="topRowInput">Top row</label>
-              <textarea id="topRowInput">1 1 2 2 4 4</textarea>
+              <textarea id="topRowInput"></textarea>
             </div>
             <div class="field">
               <label for="bottomRowInput">Bottom row</label>
-              <textarea id="bottomRowInput">1 2 1 3 2 4</textarea>
+              <textarea id="bottomRowInput"></textarea>
               <div class="help">The app can sort the array into lexicographic order automatically.</div>
             </div>
           </div>
@@ -64,9 +60,7 @@
           <div id="matrixMode" class="mode">
             <div class="field">
               <label for="matrixInput">Matrix</label>
-              <textarea id="matrixInput">2 0 1
-1 2 0
-0 1 1</textarea>
+              <textarea id="matrixInput"></textarea>
               <div class="help">Nonnegative integer matrix. Rows correspond to top-row values, columns to bottom-row values.</div>
             </div>
           </div>
@@ -84,6 +78,7 @@
           <h2>Output</h2>
           <p>The outputs below are synchronized: tableaux, two-rowed array, and matrix.</p>
         </div>
+
         <div class="panel-body">
           <div class="output-grid">
             <div class="card">
@@ -113,6 +108,6 @@
     </div>
   </main>
 
-  <script src="app.js"></script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
