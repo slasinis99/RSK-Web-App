@@ -354,17 +354,21 @@ function extractRowsFromLabelGroups(groups) {
   return { pRow, qRow, labels };
 }
 
-function nextMatrixFromRepeatedLabels(labeledBalls, numRows, numCols) {
-  const groups = groupBallsByLabel(labeledBalls);
+export function nextMatrixFromRepeatedLabels(labeledCells, numRows, numCols) {
+  const groups = groupedBallsByLabel(labeledCells);
   const next = makeZeroMatrix(numRows, numCols);
 
   for (const balls of groups.values()) {
     if (balls.length <= 1) continue;
 
     for (let i = 0; i < balls.length - 1; i += 1) {
-      const leftBall = balls[i];
-      const rightBall = balls[i + 1];
-      next[rightBall.row][leftBall.col] += 1;
+      const sourceA = balls[i];
+      const sourceB = balls[i + 1];
+
+      const newRow = sourceA.row;
+      const newCol = sourceB.col;
+
+      next[newRow][newCol] += 1;
     }
   }
 
