@@ -21,10 +21,27 @@
         <div class="panel-header">
           <h2>Input</h2>
           <p>Choose one representation and click convert.</p>
-          <div class="tabs">
-            <button class="tab-btn active" data-mode="tableauxMode">Pair of Tableaux</button>
-            <button class="tab-btn" data-mode="arrayMode">Two-Rowed Array</button>
-            <button class="tab-btn" data-mode="matrixMode">Matrix</button>
+
+          <div class="toolbar-group">
+            <div>
+              <div class="toolbar-label">Input mode</div>
+              <div class="tabs">
+                <button class="tab-btn active" data-mode="tableauxMode">Pair of Tableaux</button>
+                <button class="tab-btn" data-mode="arrayMode">Two-Rowed Array</button>
+                <button class="tab-btn" data-mode="matrixMode">Matrix</button>
+              </div>
+            </div>
+
+            <div class="algorithm-bar">
+              <label for="algorithmSelect" class="toolbar-label">Algorithm</label>
+              <select id="algorithmSelect">
+                <option value="rowInsertion">Row insertion</option>
+                <option value="matrixBall">Matrix-ball construction</option>
+              </select>
+              <div class="help">
+                Matrix-ball is a placeholder for now and will be wired in once we implement your preferred conventions.
+              </div>
+            </div>
           </div>
         </div>
 
@@ -50,6 +67,7 @@
               <label for="topRowInput">Top row</label>
               <textarea id="topRowInput"></textarea>
             </div>
+
             <div class="field">
               <label for="bottomRowInput">Bottom row</label>
               <textarea id="bottomRowInput"></textarea>
@@ -61,7 +79,9 @@
             <div class="field">
               <label for="matrixInput">Matrix</label>
               <textarea id="matrixInput"></textarea>
-              <div class="help">Nonnegative integer matrix. Rows correspond to top-row values, columns to bottom-row values.</div>
+              <div class="help">
+                Nonnegative integer matrix. Rows correspond to top-row values, columns to bottom-row values.
+              </div>
             </div>
           </div>
 
@@ -85,14 +105,17 @@
               <h3>P tableau</h3>
               <div id="pOutput"></div>
             </div>
+
             <div class="card">
               <h3>Q tableau</h3>
               <div id="qOutput"></div>
             </div>
+
             <div class="card">
               <h3>Two-rowed array</h3>
               <div id="arrayOutput" class="mono"></div>
             </div>
+
             <div class="card">
               <h3>Matrix</h3>
               <div id="matrixOutput" class="mono"></div>
@@ -100,7 +123,19 @@
           </div>
 
           <div class="card steps-card">
-            <h3>Step-by-step log</h3>
+            <div class="steps-header">
+              <div>
+                <h3>Step navigator</h3>
+                <div id="stepCounter" class="small">No steps loaded.</div>
+              </div>
+
+              <div class="step-controls">
+                <button id="prevStepBtn" class="secondary">Previous</button>
+                <button id="nextStepBtn" class="secondary">Next</button>
+                <button id="resetStepBtn" class="secondary">Reset</button>
+              </div>
+            </div>
+
             <div id="stepsOutput" class="steps"></div>
           </div>
         </div>

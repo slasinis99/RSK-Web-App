@@ -1,5 +1,11 @@
 import { EXAMPLES } from "./examples.js";
 import {
+  MODE_IDS,
+  ALGORITHM_IDS,
+  DOM_IDS,
+  UI_TEXT,
+} from "./constants.js";
+import {
   parseLineOfInts,
   parseTableau,
   parseMatrix,
@@ -20,10 +26,31 @@ import {
 import {
   showStatus,
   clearSteps,
-  addStep,
+  renderStep,
   renderTableau,
   renderOutputs,
+  setNavigatorButtonState,
+  resetOutputPlaceholders,
 } from "./renderer.js";
+
+const appState = {
+  currentSteps: [],
+  currentStepIndex: -1,
+  latestOutputs: null,
+};
+
+function getById(id) {
+  return document.getElementById(id);
+}
+
+function getActiveMode() {
+  const active = document.querySelector(".mode.active");
+  return active ? active.id : MODE_IDS.TABLEAUX;
+}
+
+function getSelectedAlgorithm() {
+  return getById(DOM_IDS.ALGORITHM_SELECT).value;
+}
 
 function setMode(modeId) {
   document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -34,29 +61,107 @@ function setMode(modeId) {
     mode.classList.toggle("active", mode.id === modeId);
   });
 
-  clearSteps();
+  clearNavigatorOnly();
   showStatus("");
 }
 
-function loadSample() {
-  const activeMode = document.querySelector(".mode.active").id;
+function clearNavigatorOnly() {
+  appState.currentSteps = [];
+  appState.currentStepIndex = -1;
+  clearSteps();
+  setNavigatorButtonState({
+    hasSteps: false,
+    atStart: true,
+    atEnd: true,
+  });
+}
 
-  if (activeMode === "tableauxMode") {
-    document.getElementById("pInput").value = EXAMPLES.tableaux.P;
-    document.getElementById("qInput").value = EXAMPLES.tableaux.Q;
-  } else if (activeMode === "arrayMode") {
-    document.getElementById("topRowInput").value = EXAMPLES.array.top;
-    document.getElementById("bottomRowInput").value = EXAMPLES.array.bottom;
+function loadSample() {
+  const activeMode = getActiveMode();
+
+  if (activeMode === MODE_IDS.TABLEAUX) {
+    getById(DOM_IDS.P_INPUT).value = EXAMPLES.tableaux.P;
+    getById(DOM_IDS.Q_INPUT).value = EXAMPLES.tableaux.Q;
+  } else if (activeMode === MODE_IDS.ARRAY) {
+    getById(DOM_IDS.TOP_ROW_INPUT).value = EXAMPLES.array.top;
+    getById(DOM_IDS.BOTTOM_ROW_INPUT).value = EXAMPLES.array.bottom;
   } else {
-    document.getElementById("matrixInput").value = EXAMPLES.matrix.value;
+    getById(DOM_IDS.MATRIX_INPUT).value = EXAMPLES.matrix.value;
   }
 
   showStatus("Loaded sample input.");
 }
 
+function setSteps(steps) {
+  appState.currentSteps = steps;
+  appState.currentStepIndex = steps.length > 0 ? 0 : -1;
+  syncNavigator();
+}
+
+function syncNavigator() {
+  const hasSteps = appState.currentSteps.length > 0;
+  const atStart = appState.currentStepIndex <= 0;
+  const atEnd = appState.currentStepIndex >= appState.currentSteps.length - 1;
+
+  setNavigatorButtonState({ hasSteps, atStart, atEnd });
+
+  if (!hasSteps) {
+    renderStep(null, -1, 0);
+    if (appState.latestOutputs) {
+      renderOutputs({
+        ...appState.latestOutputs,
+        highlightP: [],
+        highlightQ: [],
+      });
+    }
+    return;
+  }
+
+  const step = appState.currentSteps[appState.currentStepIndex];
+  renderStep(step, appState.currentStepIndex, appState.currentSteps.length);
+
+  if (appState.latestOutputs) {
+    renderOutputs({
+      ...appState.latestOutputs,
+      highlightP: step.state?.highlightP ?? [],
+      highlightQ: step.state?.highlightQ ?? [],
+      P: step.state?.P ?? appState.latestOutputs.P,
+      Q: step.state?.Q ?? appState.latestOutputs.Q,
+    });
+  }
+}
+
+function goToPreviousStep() {
+  if (appState.currentStepIndex > 0) {
+    appState.currentStepIndex -= 1;
+    syncNavigator();
+  }
+}
+
+function goToNextStep() {
+  if (appState.currentStepIndex < appState.currentSteps.length - 1) {
+    appState.currentStepIndex += 1;
+    syncNavigator();
+  }
+}
+
+function resetSteps() {
+  if (appState.currentSteps.length === 0) return;
+  appState.currentStepIndex = 0;
+  syncNavigator();
+}
+
+function ensureRowInsertionSelected() {
+  if (getSelectedAlgorithm() === ALGORITHM_IDS.MATRIX_BALL) {
+    throw new Error(UI_TEXT.NOT_IMPLEMENTED_MATRIX_BALL);
+  }
+}
+
 function convertFromTableaux() {
-  const P = parseTableau(document.getElementById("pInput").value);
-  const Q = parseTableau(document.getElementById("qInput").value);
+  ensureRowInsertionSelected();
+
+  const P = parseTableau(getById(DOM_IDS.P_INPUT).value);
+  const Q = parseTableau(getById(DOM_IDS.Q_INPUT).value);
 
   validateSemistandard(P, "P");
   validateSemistandard(Q, "Q");
@@ -69,24 +174,41 @@ function convertFromTableaux() {
   const lex = sortBiwordLex(inverse.top, inverse.bottom);
   const matrix = matrixFromBiword(lex.top, lex.bottom);
 
-  addStep(
-    "Start with tableaux",
-    `Shape(P) = Shape(Q) = [${shapeOf(P).join(", ")}].\nProceed by reverse row insertion.`
-  );
+  const steps = [
+    {
+      title: "Start with tableaux",
+      content: `Shape(P) = Shape(Q) = [${shapeOf(P).join(", ")}].\nProceed by reverse row insertion.`,
+      state: {
+        P,
+        Q,
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+    ...inverse.steps,
+    {
+      title: "Lexicographic order",
+      content: formatArray(lex.top, lex.bottom),
+      state: {
+        P,
+        Q,
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+    {
+      title: "Build matrix",
+      content: formatMatrix(matrix),
+      state: {
+        P,
+        Q,
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+  ];
 
-  inverse.steps.forEach((step) => addStep(step.title, step.content));
-
-  addStep("Lexicographic order", formatArray(lex.top, lex.bottom), {
-    small: validateLexOrder(inverse.top, inverse.bottom)
-      ? "Recovered array was already in lexicographic order."
-      : "Recovered array was sorted into lexicographic order.",
-  });
-
-  addStep("Build matrix", formatMatrix(matrix), {
-    small: "Matrix entry (i, j) counts the number of pairs (i, j).",
-  });
-
-  renderOutputs({
+  appState.latestOutputs = {
     P,
     Q,
     top: lex.top,
@@ -94,14 +216,19 @@ function convertFromTableaux() {
     matrix,
     formatArray,
     formatMatrix,
-  });
+  };
+
+  renderOutputs(appState.latestOutputs);
+  setSteps(steps);
 
   showStatus("Converted from tableaux to two-rowed array and matrix.");
 }
 
 function convertFromArray() {
-  const top = parseLineOfInts(document.getElementById("topRowInput").value);
-  const bottom = parseLineOfInts(document.getElementById("bottomRowInput").value);
+  ensureRowInsertionSelected();
+
+  const top = parseLineOfInts(getById(DOM_IDS.TOP_ROW_INPUT).value);
+  const bottom = parseLineOfInts(getById(DOM_IDS.BOTTOM_ROW_INPUT).value);
 
   if (top.length !== bottom.length) {
     throw new Error("Top and bottom rows must have the same length.");
@@ -113,25 +240,56 @@ function convertFromArray() {
     throw new Error("This app expects positive integer entries in the array.");
   }
 
-  addStep("Start with two-rowed array", formatArray(top, bottom));
-
   const lex = sortBiwordLex(top, bottom);
-
-  if (!validateLexOrder(top, bottom)) {
-    addStep("Sort into lexicographic order", formatArray(lex.top, lex.bottom));
-  } else {
-    addStep("Lexicographic order", formatArray(lex.top, lex.bottom), {
-      small: "The input was already lexicographically ordered.",
-    });
-  }
-
   const forward = rskFromBiword(lex.top, lex.bottom);
-  forward.steps.forEach((step) => addStep(step.title, step.content));
-
   const matrix = matrixFromBiword(lex.top, lex.bottom);
-  addStep("Build matrix", formatMatrix(matrix));
 
-  renderOutputs({
+  const steps = [
+    {
+      title: "Start with two-rowed array",
+      content: formatArray(top, bottom),
+      state: {
+        P: [],
+        Q: [],
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+    !validateLexOrder(top, bottom)
+      ? {
+          title: "Sort into lexicographic order",
+          content: formatArray(lex.top, lex.bottom),
+          state: {
+            P: [],
+            Q: [],
+            highlightP: [],
+            highlightQ: [],
+          },
+        }
+      : {
+          title: "Lexicographic order",
+          content: formatArray(lex.top, lex.bottom),
+          state: {
+            P: [],
+            Q: [],
+            highlightP: [],
+            highlightQ: [],
+          },
+        },
+    ...forward.steps,
+    {
+      title: "Build matrix",
+      content: formatMatrix(matrix),
+      state: {
+        P: forward.P,
+        Q: forward.Q,
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+  ];
+
+  appState.latestOutputs = {
     P: forward.P,
     Q: forward.Q,
     top: lex.top,
@@ -139,27 +297,47 @@ function convertFromArray() {
     matrix,
     formatArray,
     formatMatrix,
-  });
+  };
+
+  renderOutputs(appState.latestOutputs);
+  setSteps(steps);
 
   showStatus("Converted from two-rowed array to tableaux and matrix.");
 }
 
 function convertFromMatrix() {
-  const matrix = parseMatrix(document.getElementById("matrixInput").value);
+  ensureRowInsertionSelected();
 
-  addStep("Start with matrix", formatMatrix(matrix));
-
+  const matrix = parseMatrix(getById(DOM_IDS.MATRIX_INPUT).value);
   const biword = biwordFromMatrix(matrix);
-  biword.steps.forEach((step) => addStep(step.title, step.content));
-
-  addStep("Associated two-rowed array", formatArray(biword.top, biword.bottom), {
-    small: "Reading matrix entries row by row yields the lexicographically ordered biword.",
-  });
-
   const forward = rskFromBiword(biword.top, biword.bottom);
-  forward.steps.forEach((step) => addStep(step.title, step.content));
 
-  renderOutputs({
+  const steps = [
+    {
+      title: "Start with matrix",
+      content: formatMatrix(matrix),
+      state: {
+        P: [],
+        Q: [],
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+    ...biword.steps,
+    {
+      title: "Associated two-rowed array",
+      content: formatArray(biword.top, biword.bottom),
+      state: {
+        P: [],
+        Q: [],
+        highlightP: [],
+        highlightQ: [],
+      },
+    },
+    ...forward.steps,
+  ];
+
+  appState.latestOutputs = {
     P: forward.P,
     Q: forward.Q,
     top: biword.top,
@@ -167,27 +345,30 @@ function convertFromMatrix() {
     matrix,
     formatArray,
     formatMatrix,
-  });
+  };
+
+  renderOutputs(appState.latestOutputs);
+  setSteps(steps);
 
   showStatus("Converted from matrix to two-rowed array and tableaux.");
 }
 
 function runConversion() {
-  clearSteps();
   showStatus("");
 
   try {
-    const activeMode = document.querySelector(".mode.active").id;
+    const activeMode = getActiveMode();
 
-    if (activeMode === "tableauxMode") {
+    if (activeMode === MODE_IDS.TABLEAUX) {
       convertFromTableaux();
-    } else if (activeMode === "arrayMode") {
+    } else if (activeMode === MODE_IDS.ARRAY) {
       convertFromArray();
-    } else if (activeMode === "matrixMode") {
+    } else if (activeMode === MODE_IDS.MATRIX) {
       convertFromMatrix();
     }
   } catch (error) {
     console.error(error);
+    clearNavigatorOnly();
     showStatus(error.message || String(error), "bad");
   }
 }
@@ -197,23 +378,32 @@ function initialize() {
     btn.addEventListener("click", () => setMode(btn.dataset.mode));
   });
 
-  document.getElementById("convertBtn").addEventListener("click", runConversion);
-  document.getElementById("sampleBtn").addEventListener("click", loadSample);
-  document.getElementById("clearStepsBtn").addEventListener("click", () => {
-    clearSteps();
+  getById(DOM_IDS.CONVERT_BTN).addEventListener("click", runConversion);
+  getById(DOM_IDS.SAMPLE_BTN).addEventListener("click", loadSample);
+  getById(DOM_IDS.CLEAR_STEPS_BTN).addEventListener("click", () => {
+    clearNavigatorOnly();
     showStatus("");
   });
 
-  document.getElementById("pInput").value = EXAMPLES.tableaux.P;
-  document.getElementById("qInput").value = EXAMPLES.tableaux.Q;
-  document.getElementById("topRowInput").value = EXAMPLES.array.top;
-  document.getElementById("bottomRowInput").value = EXAMPLES.array.bottom;
-  document.getElementById("matrixInput").value = EXAMPLES.matrix.value;
+  getById(DOM_IDS.PREV_STEP_BTN).addEventListener("click", goToPreviousStep);
+  getById(DOM_IDS.NEXT_STEP_BTN).addEventListener("click", goToNextStep);
+  getById(DOM_IDS.RESET_STEP_BTN).addEventListener("click", resetSteps);
 
-  renderTableau("pOutput", []);
-  renderTableau("qOutput", []);
-  document.getElementById("arrayOutput").textContent = "(no output yet)";
-  document.getElementById("matrixOutput").textContent = "(no output yet)";
+  getById(DOM_IDS.P_INPUT).value = EXAMPLES.tableaux.P;
+  getById(DOM_IDS.Q_INPUT).value = EXAMPLES.tableaux.Q;
+  getById(DOM_IDS.TOP_ROW_INPUT).value = EXAMPLES.array.top;
+  getById(DOM_IDS.BOTTOM_ROW_INPUT).value = EXAMPLES.array.bottom;
+  getById(DOM_IDS.MATRIX_INPUT).value = EXAMPLES.matrix.value;
+
+  renderTableau(DOM_IDS.P_OUTPUT, []);
+  renderTableau(DOM_IDS.Q_OUTPUT, []);
+  resetOutputPlaceholders();
+
+  setNavigatorButtonState({
+    hasSteps: false,
+    atStart: true,
+    atEnd: true,
+  });
 }
 
 initialize();

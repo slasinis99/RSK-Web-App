@@ -1,3 +1,5 @@
+import { STEP_KIND } from "./constants.js";
+
 export function deepCopyTableau(T) {
   return T.map((row) => [...row]);
 }
@@ -43,17 +45,20 @@ export function sortBiwordLex(top, bottom) {
 export function rowInsert(tableau, value) {
   const T = deepCopyTableau(tableau);
   const notes = [];
+  const bumpPath = [];
   let x = value;
   let r = 0;
 
   while (true) {
     if (r === T.length) {
       T.push([x]);
+      bumpPath.push([r, 0]);
       notes.push(`Created new row ${r + 1} and placed ${x}.`);
       return {
         tableau: T,
         position: [r, 0],
         notes,
+        bumpPath,
       };
     }
 
@@ -62,16 +67,19 @@ export function rowInsert(tableau, value) {
 
     if (bumpIndex === -1) {
       row.push(x);
+      bumpPath.push([r, row.length - 1]);
       notes.push(`Appended ${x} to row ${r + 1}.`);
       return {
         tableau: T,
         position: [r, row.length - 1],
         notes,
+        bumpPath,
       };
     }
 
     const bumped = row[bumpIndex];
     row[bumpIndex] = x;
+    bumpPath.push([r, bumpIndex]);
     notes.push(`In row ${r + 1}, ${x} bumped ${bumped} from column ${bumpIndex + 1}.`);
     x = bumped;
     r += 1;
@@ -81,6 +89,7 @@ export function rowInsert(tableau, value) {
 export function reverseRowInsert(tableau, rowIndex, colIndex) {
   const T = deepCopyTableau(tableau);
   const notes = [];
+  const bumpPath = [];
 
   if (rowIndex < 0 || rowIndex >= T.length || colIndex < 0 || colIndex >= T[rowIndex].length) {
     throw new Error("Invalid removal position for reverse row insertion.");
@@ -88,9 +97,10 @@ export function reverseRowInsert(tableau, rowIndex, colIndex) {
 
   let x = T[rowIndex][colIndex];
   T[rowIndex].splice(colIndex, 1);
+  bumpPath.push([rowIndex, colIndex]);
   notes.push(`Removed ${x} from row ${rowIndex + 1}, column ${colIndex + 1}.`);
 
-  if (T[rowIndex].length === 0) {
+  if (T[rowIndex] && T[rowIndex].length === 0) {
     T.splice(rowIndex, 1);
     notes.push(`Deleted empty row ${rowIndex + 1}.`);
   }
@@ -112,11 +122,12 @@ export function reverseRowInsert(tableau, rowIndex, colIndex) {
 
     const bumped = row[j];
     row[j] = x;
+    bumpPath.push([r, j]);
     notes.push(`In row ${r + 1}, replaced ${bumped} with ${x} at column ${j + 1}.`);
     x = bumped;
   }
 
-  return { tableau: T, value: x, notes };
+  return { tableau: T, value: x, notes, bumpPath };
 }
 
 export function rskFromBiword(top, bottom) {
@@ -138,6 +149,7 @@ export function rskFromBiword(top, bottom) {
     Q[r].splice(c, 0, a);
 
     steps.push({
+      kind: STEP_KIND.FORWARD_INSERT,
       title: `Insert pair (${a}, ${b})`,
       content: [
         ...insertResult.notes,
@@ -145,6 +157,12 @@ export function rskFromBiword(top, bottom) {
         `Current P:\n${tableauToText(P)}`,
         `Current Q:\n${tableauToText(Q)}`,
       ].join("\n"),
+      state: {
+        P: deepCopyTableau(P),
+        Q: deepCopyTableau(Q),
+        highlightP: insertResult.bumpPath,
+        highlightQ: [[r, c]],
+      },
     });
   }
 
@@ -189,6 +207,7 @@ export function inverseRsk(Pin, Qin) {
     bottom.push(b);
 
     steps.push({
+      kind: STEP_KIND.REVERSE_INSERT,
       title: `Reverse step using Q entry ${a}`,
       content: [
         `Selected an occurrence of the current maximum recording value at row ${r + 1}, column ${c + 1}.`,
@@ -197,6 +216,12 @@ export function inverseRsk(Pin, Qin) {
         `Remaining P:\n${tableauToText(P)}`,
         `Remaining Q:\n${tableauToText(Q)}`,
       ].join("\n"),
+      state: {
+        P: deepCopyTableau(P),
+        Q: deepCopyTableau(Q),
+        highlightP: reverse.bumpPath,
+        highlightQ: [],
+      },
     });
   }
 
@@ -216,8 +241,10 @@ export function biwordFromMatrix(matrix) {
 
       if (count > 0) {
         steps.push({
+          kind: STEP_KIND.MATRIX_ENTRY,
           title: `Matrix entry (${i + 1}, ${j + 1}) = ${count}`,
           content: `Add ${count} copies of the pair (${i + 1}, ${j + 1}).`,
+          state: null,
         });
       }
 
