@@ -236,6 +236,7 @@ label {
   border-radius: 14px;
   padding: 1rem;
   background: #fff;
+  min-width: 0;
 }
 
 .card h3 {
@@ -262,6 +263,17 @@ label {
   flex-wrap: wrap;
 }
 
+.tableau-scrollbox {
+  width: 100%;
+  max-width: 100%;
+  max-height: 260px;
+  overflow: auto;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fcfdff;
+}
+
 .tableau-grid {
   display: inline-grid;
   gap: 2px;
@@ -271,8 +283,6 @@ label {
 }
 
 .tableau-cell {
-  width: 42px;
-  height: 42px;
   background: white;
   display: flex;
   align-items: center;
@@ -280,6 +290,7 @@ label {
   border-radius: 6px;
   font-weight: 600;
   border: 2px solid transparent;
+  user-select: none;
 }
 
 .tableau-cell.highlight {
@@ -288,8 +299,6 @@ label {
 }
 
 .empty-cell {
-  width: 42px;
-  height: 42px;
   opacity: 0;
 }
 
@@ -322,6 +331,33 @@ label {
   color: var(--muted);
 }
 
+.step-visualization {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fcfdff;
+  overflow: auto;
+  max-width: 100%;
+  max-height: 520px;
+}
+
+.step-visualization:empty {
+  display: none;
+}
+
+.matrix-ball-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.matrix-ball-caption {
+  margin-top: 0.5rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
 @media (max-width: 1000px) {
   .layout {
     grid-template-columns: 1fr;
@@ -334,29 +370,4 @@ label {
   .steps-header {
     flex-direction: column;
   }
-}
-
-.step-visualization {
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: #fcfdff;
-  overflow-x: auto;
-}
-
-.step-visualization:empty {
-  display: none;
-}
-
-.matrix-ball-svg {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
-
-.matrix-ball-caption {
-  margin-top: 0.5rem;
-  font-size: 0.92rem;
-  color: var(--muted);
 }

@@ -38,12 +38,14 @@ export const DOM_IDS = {
 export const UI_TEXT = {
   NO_STEPS: "No steps loaded.",
   EMPTY_OUTPUT: "(no output yet)",
-  MATRIX_BALL_TABLEAUX_STANDARD_ONLY:
-    "The inverse matrix-ball option for tableaux currently expects P and Q to be standard tableaux with the same shape.",
 };
 
 export const TABLEAU_UI = {
   CELL_SIZE_PX: 42,
+  MIN_CELL_SIZE_PX: 22,
+  MAX_CONTAINER_HEIGHT_PX: 260,
+  PADDING_PX: 4,
+  FONT_SCALE: 0.42,
 };
 
 export const STEP_KIND = {
@@ -57,9 +59,15 @@ export const STEP_KIND = {
 export const MATRIX_BALL_UI = {
   CELL_WIDTH: 72,
   CELL_HEIGHT: 72,
+  MIN_CELL_WIDTH: 40,
+  MIN_CELL_HEIGHT: 40,
   BALL_RADIUS: 11,
+  MIN_BALL_RADIUS: 5,
   DIAGONAL_STEP: 16,
   PADDING: 24,
+  MIN_PADDING: 14,
   LABEL_FONT_SIZE: 11,
   INDEX_FONT_SIZE: 12,
+  MAX_VIEWPORT_WIDTH: 900,
+  MAX_VIEWPORT_HEIGHT: 460,
 };
